@@ -40,14 +40,13 @@ or "PRODUCTCODE" is null
 or "CUSTOMERNAME" is null
 or "PHONE" is null;
 
+-- Returns orders that contain missing or duplicate line numbers
+select "ORDERNUMBER", count(*) AS total_rows, max("ORDERLINENUMBER") AS max_line_number
+from auto_sales_data
+group by "ORDERNUMBER"
+having count("ORDERLINENUMBER") <> count(distinct "ORDERLINENUMBER");
+
 -- DATA ANALYSIS
-
-
-SELECT *
-FROM YourTableName
-WHERE Column1 IS NULL
-   OR Column2 IS NULL
-   OR Column3 IS NULL
 
 -- All rows that contain On Hold, Disputed, or Cancelled STATUS messages
 select * from auto_sales_data
