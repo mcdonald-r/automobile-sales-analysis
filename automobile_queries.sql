@@ -75,12 +75,38 @@ from auto_sales_data
 group by status_category
 order by percent_of_total_sales desc;
 
+-- Breaks down by country the distribution of where these problematic orders are happening geographically
+select "COUNTRY", count("ORDERNUMBER") as order_count, sum("SALES") as total_sales_at_risk,
+	round((sum("SALES") / sum(sum("SALES")) over ())::numeric * 100, 2) as percent_of_total_sales_at_risk
+from auto_sales_data
+where "STATUS" in ('Cancelled', 'Disputed', 'On Hold')
+group by "COUNTRY"
+order by percent_of_total_sales_at_risk desc;
+
+-- Compares a country's at risks sales to their completed sales total and calculates what percent of their sales
+-- are at risk
+select "COUNTRY", sum(case when "STATUS" in ('Cancelled', 'Disputed', 'On Hold') 
+	then "SALES" else 0 end) as at_risk_sales, 
+sum(case when "STATUS" in ('Shipped', 'Resolved') 
+	then "SALES" else 0 end) as completed_sales, 
+round((sum(case when "STATUS" in ('Cancelled', 'Disputed', 'On Hold') 
+	then "SALES" else 0 end) / sum("SALES"))::numeric * 100, 2) as at_risk_percentage 
+from auto_sales_data 
+group by "COUNTRY"
+having round((sum(case when "STATUS" in ('Cancelled', 'Disputed', 'On Hold') 
+	then "SALES" else 0 end) / sum("SALES"))::numeric * 100, 2) > 0
+order by at_risk_percentage desc;
+
+-- 
+select distinct "CUSTOMERNAME", sum("SALES") as total_sales, count("ORDERNUMBER")
+from auto_sales_data
+where "STATUS" in ('Cancelled', 'Disputed', 'On Hold')
+group by "CUSTOMERNAME"
+order by total_sales desc;
+
 -- SCRATCH WORK
 
 -- All rows that contain On Hold, Disputed, or Cancelled STATUS messages
-select * from auto_sales_data
-where "STATUS" in ('On Hold', 'Disputed', 'Cancelled');
-
 select * from auto_sales_data
 where "STATUS" in ('On Hold', 'Disputed', 'Cancelled');
 
