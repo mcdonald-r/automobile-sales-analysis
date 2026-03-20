@@ -1,126 +1,160 @@
--- DATA EXPLORATION 
+-- ============================================================
+-- DATA EXPLORATION
+-- ============================================================
 
--- All column names in the data set
-SELECT column_name 
+-- All column names in the dataset
+SELECT column_name
 FROM information_schema.columns
 WHERE table_name = 'auto_sales_data';
 
 -- Displays the first 10 rows of the dataset
-select * from auto_sales_data limit 10;
+SELECT *
+FROM auto_sales_data
+LIMIT 10;
 
 -- Returns all the different status messages
-select distinct "STATUS" from auto_sales_data;
+SELECT DISTINCT "STATUS"
+FROM auto_sales_data;
 
 -- Returns the count of sales by the size of the order
-select "DEALSIZE",  count("DEALSIZE") from auto_sales_data
-group by "DEALSIZE";
+SELECT
+    "DEALSIZE",
+    COUNT("DEALSIZE") AS deal_count
+FROM auto_sales_data
+GROUP BY "DEALSIZE";
 
 -- Returns the date range the orders are pulled from
-select min("ORDERDATE") as first_order_date, max("ORDERDATE") as last_order_date
-from auto_sales_data;
+SELECT
+    MIN("ORDERDATE") AS first_order_date,
+    MAX("ORDERDATE") AS last_order_date
+FROM auto_sales_data;
 
+
+-- ============================================================
 -- DATA QUALITY CHECK
+-- ============================================================
 
 -- Returns all rows that contain a null value in any of its columns
-select * from auto_sales_data
-where "PRICEEACH" is null
-	or "ORDERLINENUMBER" is null
-	or "MSRP" is null
-	or "SALES" is null
-	or "QUANTITYORDERED" is null
-	or "DAYS_SINCE_LASTORDER" is null
-	or "ORDERNUMBER" is null
-	or "ADDRESSLINE1" is null
-	or "CITY" is null
-	or "POSTALCODE" is null
-	or "COUNTRY" is null
-	or "CONTACTLASTNAME" is null
-	or "CONTACTFIRSTNAME" is null
-	or "DEALSIZE" is null
-	or "ORDERDATE" is null
-	or "STATUS" is null
-	or "PRODUCTLINE" is null
-	or "PRODUCTCODE" is null
-	or "CUSTOMERNAME" is null
-	or "PHONE" is null;
+SELECT *
+FROM auto_sales_data
+WHERE "PRICEEACH" IS NULL
+    OR "ORDERLINENUMBER" IS NULL
+    OR "MSRP" IS NULL
+    OR "SALES" IS NULL
+    OR "QUANTITYORDERED" IS NULL
+    OR "DAYS_SINCE_LASTORDER" IS NULL
+    OR "ORDERNUMBER" IS NULL
+    OR "ADDRESSLINE1" IS NULL
+    OR "CITY" IS NULL
+    OR "POSTALCODE" IS NULL
+    OR "COUNTRY" IS NULL
+    OR "CONTACTLASTNAME" IS NULL
+    OR "CONTACTFIRSTNAME" IS NULL
+    OR "DEALSIZE" IS NULL
+    OR "ORDERDATE" IS NULL
+    OR "STATUS" IS NULL
+    OR "PRODUCTLINE" IS NULL
+    OR "PRODUCTCODE" IS NULL
+    OR "CUSTOMERNAME" IS NULL
+    OR "PHONE" IS NULL;
 
 -- Returns orders that contain missing or duplicate line numbers
-select "ORDERNUMBER", count(*) AS total_rows, max("ORDERLINENUMBER") AS max_line_number
-from auto_sales_data
-group by "ORDERNUMBER"
-having count("ORDERLINENUMBER") <> count(distinct "ORDERLINENUMBER");
+SELECT
+    "ORDERNUMBER",
+    COUNT(*) AS total_rows,
+    MAX("ORDERLINENUMBER") AS max_line_number
+FROM auto_sales_data
+GROUP BY "ORDERNUMBER"
+HAVING COUNT("ORDERLINENUMBER") <> COUNT(DISTINCT "ORDERLINENUMBER");
 
--- Returns orders where quantity ordered multiplied by he price of each is off from the sales number by more than $0.01
-select * from auto_sales_data
-where abs(("QUANTITYORDERED" * "PRICEEACH") - "SALES") > 0.01;
+-- Returns orders where quantity ordered multiplied by the price of each is off from the sales number by more than $0.01
+SELECT *
+FROM auto_sales_data
+WHERE ABS(("QUANTITYORDERED" * "PRICEEACH") - "SALES") > 0.01;
 
+
+-- ============================================================
 -- DATA ANALYSIS
+-- ============================================================
 
 -- Breaks down the order count, total sales, and percent of total sales by status message
-select "STATUS", count("ORDERNUMBER") as order_count, sum("SALES") as total_sales, 
-	round((sum("SALES") / sum(sum("SALES")) over ())::numeric * 100, 2) as percent_of_total_sales
-from auto_sales_data
-group by "STATUS" 
-order by percent_of_total_sales desc;
+SELECT
+    "STATUS",
+    COUNT("ORDERNUMBER") AS order_count,
+    SUM("SALES") AS total_sales,
+    ROUND((SUM("SALES") / SUM(SUM("SALES")) OVER ())::NUMERIC * 100, 2) AS percent_of_total_sales
+FROM auto_sales_data
+GROUP BY "STATUS"
+ORDER BY percent_of_total_sales DESC;
 
--- Breaks down the order count, total sales, and percent of total sales by completed orders, at-risk orders, and 
+-- Breaks down the order count, total sales, and percent of total sales by completed orders, at-risk orders, and
 -- orders that are still being processed
-select case when "STATUS" in ('Cancelled', 'Disputed', 'On Hold') then 'At-Risk'
-	when "STATUS" in ('Shipped', 'Resolved') then 'Completed'
-	when "STATUS" = 'In Process' then 'Processing'
-	else 'Other'
-end as status_category, count("ORDERNUMBER") as order_count, sum("SALES") AS total_sales,
-	round((sum("SALES") / sum(sum("SALES")) over ())::numeric * 100, 2) as percent_of_total_sales
-from auto_sales_data
-group by status_category
-order by percent_of_total_sales desc;
+SELECT
+    CASE
+        WHEN "STATUS" IN ('Cancelled', 'Disputed', 'On Hold') THEN 'At-Risk'
+        WHEN "STATUS" IN ('Shipped', 'Resolved') THEN 'Completed'
+        WHEN "STATUS" = 'In Process' THEN 'Processing'
+        ELSE 'Other'
+    END AS status_category,
+    COUNT("ORDERNUMBER") AS order_count,
+    SUM("SALES") AS total_sales,
+    ROUND((SUM("SALES") / SUM(SUM("SALES")) OVER ())::NUMERIC * 100, 2) AS percent_of_total_sales
+FROM auto_sales_data
+GROUP BY status_category
+ORDER BY percent_of_total_sales DESC;
 
 -- Breaks down by country the distribution of where these problematic orders are happening geographically
-select "COUNTRY", count("ORDERNUMBER") as order_count, sum("SALES") as total_sales_at_risk,
-	round((sum("SALES") / sum(sum("SALES")) over ())::numeric * 100, 2) as percent_of_total_sales_at_risk
-from auto_sales_data
-where "STATUS" in ('Cancelled', 'Disputed', 'On Hold')
-group by "COUNTRY"
-order by percent_of_total_sales_at_risk desc;
+SELECT
+    "COUNTRY",
+    COUNT("ORDERNUMBER") AS order_count,
+    SUM("SALES") AS total_sales_at_risk,
+    ROUND((SUM("SALES") / SUM(SUM("SALES")) OVER ())::NUMERIC * 100, 2) AS percent_of_total_sales_at_risk
+FROM auto_sales_data
+WHERE "STATUS" IN ('Cancelled', 'Disputed', 'On Hold')
+GROUP BY "COUNTRY"
+ORDER BY percent_of_total_sales_at_risk DESC;
 
--- Compares a country's at risks sales to their completed sales total and calculates what percent of their sales
+-- Compares a country's at-risk sales to their completed sales total and calculates what percent of their sales
 -- are at risk
-select "COUNTRY", sum(case when "STATUS" in ('Cancelled', 'Disputed', 'On Hold') 
-	then "SALES" else 0 end) as at_risk_sales, 
-sum(case when "STATUS" in ('Shipped', 'Resolved') 
-	then "SALES" else 0 end) as completed_sales, 
-round((sum(case when "STATUS" in ('Cancelled', 'Disputed', 'On Hold') 
-	then "SALES" else 0 end) / sum("SALES"))::numeric * 100, 2) as at_risk_percentage 
-from auto_sales_data 
-group by "COUNTRY"
-having round((sum(case when "STATUS" in ('Cancelled', 'Disputed', 'On Hold') 
-	then "SALES" else 0 end) / sum("SALES"))::numeric * 100, 2) > 0
-order by at_risk_percentage desc;
+SELECT
+    "COUNTRY",
+    SUM(CASE WHEN "STATUS" IN ('Cancelled', 'Disputed', 'On Hold') THEN "SALES" ELSE 0 END) AS at_risk_sales,
+    SUM(CASE WHEN "STATUS" IN ('Shipped', 'Resolved') THEN "SALES" ELSE 0 END) AS completed_sales,
+    ROUND((SUM(CASE WHEN "STATUS" IN ('Cancelled', 'Disputed', 'On Hold')
+        THEN "SALES" ELSE 0 END) / SUM("SALES"))::NUMERIC * 100, 2) AS at_risk_percentage
+FROM auto_sales_data
+GROUP BY "COUNTRY"
+HAVING ROUND((SUM(CASE WHEN "STATUS" IN ('Cancelled', 'Disputed', 'On Hold')
+    THEN "SALES" ELSE 0 END) / SUM("SALES"))::NUMERIC * 100, 2) > 0
+ORDER BY at_risk_percentage DESC;
 
--- Customers who have at risk orders displaying total sales at risk and how many orders are at risk
-select "CUSTOMERNAME", sum("SALES") as total_sales, count("ORDERNUMBER") as total_at_risk_orders
-from auto_sales_data
-where "STATUS" in ('Cancelled', 'Disputed', 'On Hold')
-group by "CUSTOMERNAME"
-order by total_sales desc;
+-- Customers who have at-risk orders displaying total sales at risk and how many orders are at risk
+SELECT
+    "CUSTOMERNAME",
+    SUM("SALES") AS total_sales,
+    COUNT("ORDERNUMBER") AS total_at_risk_orders
+FROM auto_sales_data
+WHERE "STATUS" IN ('Cancelled', 'Disputed', 'On Hold')
+GROUP BY "CUSTOMERNAME"
+ORDER BY total_sales DESC;
 
--- Compares a customer's at risks sales to their completed sales total and calculates what percent of their sales
+-- Compares a customer's at-risk sales to their completed sales total and calculates what percent of their sales
 -- are at risk
-select "CUSTOMERNAME", sum(case when "STATUS" in ('Cancelled', 'Disputed', 'On Hold') 
-	then "SALES" else 0 end) as at_risk_sales, 
-sum(case when "STATUS" in ('Shipped', 'Resolved') 
-	then "SALES" else 0 end) as completed_sales, 
-round((sum(case when "STATUS" in ('Cancelled', 'Disputed', 'On Hold') 
-	then "SALES" else 0 end) / sum("SALES"))::numeric * 100, 2) as at_risk_percentage 
-from auto_sales_data 
-group by "CUSTOMERNAME"
-having round((sum(case when "STATUS" in ('Cancelled', 'Disputed', 'On Hold') 
-	then "SALES" else 0 end) / sum("SALES"))::numeric * 100, 2) > 0
-order by at_risk_percentage desc;
+SELECT
+    "CUSTOMERNAME",
+    SUM(CASE WHEN "STATUS" IN ('Cancelled', 'Disputed', 'On Hold') THEN "SALES" ELSE 0 END) AS at_risk_sales,
+    SUM(CASE WHEN "STATUS" IN ('Shipped', 'Resolved') THEN "SALES" ELSE 0 END) AS completed_sales,
+    ROUND((SUM(CASE WHEN "STATUS" IN ('Cancelled', 'Disputed', 'On Hold')
+        THEN "SALES" ELSE 0 END) / SUM("SALES"))::NUMERIC * 100, 2) AS at_risk_percentage
+FROM auto_sales_data
+GROUP BY "CUSTOMERNAME"
+HAVING ROUND((SUM(CASE WHEN "STATUS" IN ('Cancelled', 'Disputed', 'On Hold')
+    THEN "SALES" ELSE 0 END) / SUM("SALES"))::NUMERIC * 100, 2) > 0
+ORDER BY at_risk_percentage DESC;
 
 -- Breaks down each customer's at-risk orders by category to specify what types of problems are happening repeatedly
 -- with their orders
-SELECT 
+SELECT
     "CUSTOMERNAME",
     COUNT("ORDERNUMBER") AS total_at_risk_orders,
     SUM(CASE WHEN "STATUS" = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled,
@@ -133,14 +167,32 @@ GROUP BY "CUSTOMERNAME"
 HAVING COUNT("ORDERNUMBER") > 1
 ORDER BY total_at_risk_orders DESC;
 
--- SCRATCH WORK
+-- Shows a count of each product line's at-risk deals, broken down by small, medium, and large
+SELECT
+    "PRODUCTLINE",
+    SUM(CASE WHEN "DEALSIZE" = 'Small' THEN 1 ELSE 0 END) AS small_deals,
+    SUM(CASE WHEN "DEALSIZE" = 'Medium' THEN 1 ELSE 0 END) AS medium_deals,
+    SUM(CASE WHEN "DEALSIZE" = 'Large' THEN 1 ELSE 0 END) AS large_deals,
+    COUNT("ORDERNUMBER") AS total_at_risk_orders,
+    ROUND(SUM("SALES")::NUMERIC, 2) AS total_at_risk_revenue
+FROM auto_sales_data
+WHERE "STATUS" IN ('Cancelled', 'Disputed', 'On Hold')
+GROUP BY "PRODUCTLINE"
+ORDER BY total_at_risk_orders DESC;
 
--- All rows that contain On Hold, Disputed, or Cancelled STATUS messages
-select * from auto_sales_data
-where "STATUS" in ('On Hold', 'Disputed', 'Cancelled');
+-- Displays each product line's average at-risk order, average completed order, and the difference between those
+-- two numbers
+SELECT
+    "PRODUCTLINE",
+    ROUND(AVG(CASE WHEN "STATUS" IN ('Cancelled', 'Disputed', 'On Hold') THEN "SALES" END)::NUMERIC, 2) AS avg_at_risk_order,
+    ROUND(AVG(CASE WHEN "STATUS" IN ('Shipped', 'Resolved') THEN "SALES" END)::NUMERIC, 2) AS avg_completed_order,
+    ROUND((AVG(CASE WHEN "STATUS" IN ('Shipped', 'Resolved') THEN "SALES" END)
+        - AVG(CASE WHEN "STATUS" IN ('Cancelled', 'Disputed', 'On Hold') THEN "SALES" END))::NUMERIC, 2) AS avg_order_difference
+FROM auto_sales_data
+GROUP BY "PRODUCTLINE"
+ORDER BY avg_at_risk_order DESC;
 
--- Sales per year
-select SUM("SALES"), EXTRACT(YEAR FROM "ORDERDATE") as "YEAR" from auto_sales_data
-where "STATUS" in ('Shipped', 'Resolved')
-group by "YEAR";
- 
+-- 
+SELECT *
+FROM auto_sales_data
+ORDER BY EXTRACT(MONTH FROM "ORDERDATE");
