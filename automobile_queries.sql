@@ -192,7 +192,35 @@ FROM auto_sales_data
 GROUP BY "PRODUCTLINE"
 ORDER BY avg_at_risk_order DESC;
 
--- 
-SELECT *
+-- Q5
+SELECT
+    EXTRACT(MONTH FROM TO_DATE("ORDERDATE", 'DD/MM/YYYY')) AS month_number, SUM("SALES")::NUMERIC AS total_sales
 FROM auto_sales_data
+GROUP BY month_number
+ORDER BY total_sales desc;
+
+SELECT
+    EXTRACT(MONTH FROM TO_DATE("ORDERDATE", 'DD/MM/YYYY')) AS month_number,
+    TO_CHAR(TO_DATE("ORDERDATE", 'DD/MM/YYYY'), 'Month') AS month_name,
+    COUNT("ORDERNUMBER") AS at_risk_order_count,
+    SUM("SALES") AS total_at_risk_revenue,
+    ROUND(AVG("SALES")::NUMERIC, 2) AS avg_order_value
+FROM auto_sales_data
+WHERE "STATUS" IN ('Cancelled', 'Disputed', 'On Hold')
+GROUP BY month_number, month_name
+ORDER BY month_number;
+
+-- Scratch work for now
+SELECT
+    "ORDERDATE",
+    EXTRACT(MONTH FROM TO_DATE("ORDERDATE", 'DD/MM/YYYY')) AS month_number,
+    EXTRACT(YEAR FROM TO_DATE("ORDERDATE", 'DD/MM/YYYY')) AS year_number,
+    EXTRACT(QUARTER FROM TO_DATE("ORDERDATE", 'DD/MM/YYYY')) AS quarter_number
+FROM auto_sales_data
+LIMIT 20;
+
+
+
+
+
 ORDER BY EXTRACT(MONTH FROM "ORDERDATE");
