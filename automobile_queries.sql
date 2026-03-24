@@ -12,6 +12,12 @@ SELECT *
 FROM auto_sales_data
 LIMIT 10;
 
+-- Total row count and distinct order count for reference
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(DISTINCT "ORDERNUMBER") AS unique_orders
+FROM auto_sales_data;
+
 -- Returns all the different status messages
 SELECT DISTINCT "STATUS"
 FROM auto_sales_data;
@@ -192,7 +198,8 @@ FROM auto_sales_data
 GROUP BY "PRODUCTLINE"
 ORDER BY avg_at_risk_order DESC;
 
--- Expresses at risk orders and total at risks sales, by month
+-- Expresses at-risk orders and total at-risks sale, by month
+-- Note: ORDERDATE is stored as text in DD/MM/YYYY format and requires casting to DATE
 WITH monthly_at_risk AS (
     SELECT
         EXTRACT(MONTH FROM TO_DATE("ORDERDATE", 'DD/MM/YYYY')) AS month_number,
@@ -212,7 +219,7 @@ SELECT
 FROM monthly_at_risk
 ORDER BY month_number;
 
--- Expresses at risk orders and total at risks sales, by quarter
+-- Expresses at-risk orders and total at-risks sales, by quarter, spanning from 2018 to 2020
 WITH quarterly_at_risk AS (
     SELECT
         EXTRACT(QUARTER FROM TO_DATE("ORDERDATE", 'DD/MM/YYYY')) AS quarter_number,
