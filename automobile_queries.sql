@@ -93,11 +93,11 @@ FROM auto_sales_data
 GROUP BY "STATUS"
 ORDER BY percent_of_total_sales DESC;
 
--- Breaks down the order count, total sales, and percent of total sales by completed orders, at-risk orders, and
+-- Breaks down the order count, total sales, and percent of total sales by completed orders, problem orders, and
 -- orders that are still being processed
 SELECT
     CASE
-        WHEN "STATUS" IN ('Cancelled', 'Disputed', 'On Hold') THEN 'At-Risk'
+        WHEN "STATUS" IN ('Cancelled', 'Disputed', 'On Hold') THEN 'Problem-Orders'
         WHEN "STATUS" IN ('Shipped', 'Resolved') THEN 'Completed'
         WHEN "STATUS" = 'In Process' THEN 'Processing'
         ELSE 'Other'
