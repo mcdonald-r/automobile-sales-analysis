@@ -1,4 +1,3 @@
-# automobile-sales-analysis
 # Automobile Sales Pipeline Risk Analysis
 
 ## Overview
